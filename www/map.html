@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carte runners · Festival</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+ html,body,#map{height:100%;margin:0}
+ body{background:#0b0f16}
+ .hdr{position:absolute;z-index:1000;top:10px;left:10px;background:rgba(11,15,22,.85);color:#e7edf5;
+   padding:8px 12px;border-radius:10px;font-family:system-ui,sans-serif;font-size:14px;font-weight:700}
+ .rlabel{background:#111a24;color:#fff;border:1px solid #2b4b66;border-radius:8px;padding:2px 7px;
+   font:12px system-ui,sans-serif;white-space:nowrap}
+ .leaflet-tooltip.rlabel:before{display:none}
+</style>
+</head>
+<body>
+ <div class="hdr" id="hdr">Carte runners — en direct</div>
+ <div id="map"></div>
+<script>
+ const qs = new URLSearchParams(location.search);
+ const DB = (qs.get('db') || 'https://caribana-runners-a7e4c-default-rtdb.europe-west1.firebasedatabase.app').replace(/\/+$/,'');
+ const map = L.map('map').setView([46.383, 6.234], 12);   // Nyon par défaut
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+
+ const COL = { enroute:'#40c878', onsite:'#50c8e6', returning:'#5a96f0', home:'#5a687a', assigned:'#f5b028' };
+ const LBL = { enroute:'en route', onsite:'sur site', returning:'retour', home:'rentré', assigned:'mission reçue' };
+ const markers = {}; let fitted = false;
+ const dot = c => L.divIcon({ className:'', html:`<div style="width:16px;height:16px;border-radius:50%;background:${c};border:2px solid #fff;box-shadow:0 0 6px #000"></div>`, iconSize:[16,16], iconAnchor:[8,8] });
+
+ async function tick(){
+   try{
+     const r = await fetch(`${DB}/runners.json`); const d = (await r.json()) || {};
+     const pts = []; const seen = {};
+     for (const id in d){
+       if (d[id] && d[id].disabled) continue;   // compte désactivé/supprimé → hors carte
+       const rep = (d[id] && d[id].report) || {};
+       if (typeof rep.lat !== 'number' || typeof rep.lng !== 'number') continue;
+       seen[id] = 1;
+       const c = d[id].disabled ? '#96706e' : (COL[rep.status] || '#8aa0b6');
+       const ll = [rep.lat, rep.lng]; pts.push(ll);
+       const asg = (d[id].assignment) || {}; const mission = (asg.stops || []).join(' → ');
+       const label = `${rep.name || id} · ${LBL[rep.status] || '—'}${mission ? ' · ' + mission : ''}`;
+       if (markers[id]) { markers[id].setLatLng(ll).setIcon(dot(c)); markers[id].setTooltipContent(label); }
+       else markers[id] = L.marker(ll, { icon: dot(c) }).addTo(map).bindTooltip(label, { permanent:true, direction:'right', className:'rlabel' });
+     }
+     for (const id in markers) if (!seen[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+     if (!fitted && pts.length) { map.fitBounds(pts, { padding:[60,60], maxZoom:15 }); fitted = true; }
+     document.getElementById('hdr').textContent = `Carte runners — ${pts.length} en direct`;
+   }catch(e){}
+ }
+ tick(); setInterval(tick, 2500);
+</script>
+</body>
+</html>

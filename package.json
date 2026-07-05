@@ -1,0 +1,23 @@
+{
+  "name": "festival-runner-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Festival Runner — native iOS wrapper (Capacitor) of the runner PWA, built in the cloud (Codemagic).",
+  "scripts": {
+    "sync-web": "node scripts/copy-web.js",
+    "cap:add": "cap add ios",
+    "cap:sync": "cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/geolocation": "^6.1.0",
+    "@capacitor/ios": "^6.1.2",
+    "@capacitor/push-notifications": "^6.0.3",
+    "@capacitor/splash-screen": "^6.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.2"
+  }
+}

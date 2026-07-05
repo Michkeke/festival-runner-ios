@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Festival">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Festival Runner</title>
+<style>
+ :root{--bg:#0b0f16;--card:#131a24;--line:#243040;--fg:#e7edf5;--mut:#8aa0b6;
+   --amber:#f5b028;--green:#40c878;--cyan:#50c8e6;--blue:#5a96f0;--gray:#5a687a;}
+ *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+ html,body{margin:0;background:var(--bg);color:var(--fg);
+   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+ body{min-height:100dvh;padding:16px;display:flex;flex-direction:column;gap:12px}
+ header{display:flex;align-items:center;justify-content:space-between}
+ .who{font-size:22px;font-weight:800}
+ .sub{color:var(--mut);font-size:13px;margin-top:2px}
+ .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;
+   vertical-align:middle;background:var(--gray)}
+ .mut{color:var(--mut)}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+ #mission{border-left:4px solid var(--amber)}
+ .mtitle{font-size:17px;font-weight:800;margin-bottom:8px}
+ .route{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:15px}
+ .stop{background:#0b111a;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-weight:600}
+ .arr{color:var(--mut)}
+ .mnote{color:var(--mut);font-size:13px;margin-top:8px}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ button.st{border:1px solid var(--line);background:var(--card);color:var(--fg);
+   border-radius:16px;padding:22px 12px;font-size:18px;font-weight:800;cursor:pointer;transition:transform .05s}
+ button.st:active{transform:scale(.97)}
+ button.st.on{color:#0b0f16;border-color:transparent}
+ button.st[data-s=enroute].on{background:var(--green)}
+ button.st[data-s=onsite].on{background:var(--cyan)}
+ button.st[data-s=returning].on{background:var(--blue)}
+ button.st[data-s=home].on{background:var(--gray);color:var(--fg)}
+ .row{display:flex;gap:10px;align-items:center}
+ input{flex:1;background:var(--card);border:1px solid var(--line);color:var(--fg);
+   border-radius:12px;padding:14px;font-size:16px}
+ .pill{padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--mut);font-size:12px}
+ .gps{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px;margin-top:10px}
+ #notifBtn,#installBtn{width:100%;background:#1b2536;border:1px solid var(--line);color:var(--fg);
+   border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}
+ #installBtn{background:#14324a;border-color:#2b4b66}
+ #chat{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto}
+ .b{max-width:82%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.35;word-break:break-word}
+ .b.me{align-self:flex-end;background:#1f6feb;color:#fff;border-bottom-right-radius:4px}
+ .b.them{align-self:flex-start;background:#1b2536;border:1px solid var(--line);border-bottom-left-radius:4px}
+ .b .t{display:block;font-size:11px;opacity:.6;margin-top:3px}
+ #locked{display:none;position:fixed;inset:0;z-index:99;background:#0b0f16;
+   flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+ footer{margin-top:auto;color:var(--mut);font-size:12px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+ <header>
+   <div>
+     <div class="who" id="who">Runner</div>
+     <div class="sub"><span class="dot" id="dot"></span><span id="stLabel">en attente</span></div>
+   </div>
+   <span class="pill" id="net">…</span>
+ </header>
+
+ <div id="locked">
+   <div style="font-size:46px">🔒</div>
+   <div style="font-size:22px;font-weight:800">Compte désactivé</div>
+   <div style="color:var(--mut);max-width:320px">Ton accès runner a été désactivé par l'organisation.<br>Contacte le dispatch si besoin.</div>
+ </div>
+
+ <div id="setup" class="card">
+   <div style="margin-bottom:8px;font-size:15px">Ton prénom (tu peux le modifier) :</div>
+   <div class="row">
+     <input id="nameIn" placeholder="ex. Léo" autocomplete="off">
+   </div>
+ </div>
+
+ <button id="notifBtn" onclick="enableNotif()" style="display:none">🔔 Activer les notifications</button>
+ <button id="installBtn" onclick="doInstall()" style="display:none">📲 Installer l'application</button>
+ <div id="iosHint" class="card" style="display:none;font-size:13px;color:var(--mut)">📲 Pour installer : appuie sur <b>Partager</b> ⬆️ puis <b>« Sur l'écran d'accueil »</b>.</div>
+
+ <div class="card" id="mission"><div class="mut">Aucune mission assignée.</div></div>
+ <button id="navBtn" class="st" style="display:none;width:100%;background:#14324a" onclick="navigate()">🧭 Ouvrir l'itinéraire (GPS)</button>
+
+ <div class="grid">
+   <button class="st" data-s="enroute"    onclick="setStatus('enroute')">En route</button>
+   <button class="st" data-s="onsite"     onclick="setStatus('onsite')">Sur site</button>
+   <button class="st" data-s="returning"  onclick="setStatus('returning')">Retour</button>
+   <button class="st" data-s="home"       onclick="setStatus('home')">Rentré</button>
+ </div>
+
+ <div class="card">
+   <div class="row"><input id="note" placeholder="Note d'état (optionnel)" oninput="dirty=true"></div>
+   <div class="gps" id="gps">GPS : en attente d'autorisation…</div>
+ </div>
+
+ <div class="card">
+   <div style="font-weight:700;margin-bottom:8px">💬 Messagerie · dispatch</div>
+   <div id="chat"></div>
+   <div class="row" style="margin-top:10px">
+     <input id="msg" placeholder="Écrire au dispatch…" onkeydown="if(event.key==='Enter')sendMsg()">
+     <button class="st" style="padding:14px 18px;font-size:15px" onclick="sendMsg()">Envoyer</button>
+   </div>
+ </div>
+
+ <footer>Garde l'app ouverte pendant tes trajets.<br>« Partager » → « Sur l'écran d'accueil » pour le plein écran + les notifications.</footer>
+
+<script>
+const qs = new URLSearchParams(location.search);
+// Ces paramètres viennent du QR : ?db=<url-base>&id=<idRunner>&name=<nom>
+const DB = (qs.get('db') || 'https://caribana-runners-a7e4c-default-rtdb.europe-west1.firebasedatabase.app').replace(/\/+$/,'');
+const VAPID_PUBLIC = 'BA8Ou4-muhiK0TxlQ4WNHzgPzfomA6jxzzRd_OK7bhNonyHux6aQ4cOwGlmHusYro-aO5oNzxYy-1W6hi3bNTo4';
+let id   = qs.get('id')   || localStorage.getItem('runnerId')   || '';
+let name = qs.get('name') || localStorage.getItem('runnerName') || '';
+if (qs.get('name')) localStorage.setItem('runnerName', name);
+if (qs.get('id'))   localStorage.setItem('runnerId', id);
+if (!id) { id = 'r' + Math.random().toString(36).slice(2,8); localStorage.setItem('runnerId', id); }
+
+let status = localStorage.getItem('runnerStatus') || 'home';
+let lat=null, lng=null, accuracyM=null, dirty=false, lastPush=0, curAssignId=null, curAssign=null, notifReady=false;
+let disabled=false, watchId=null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LABELS = {enroute:'En route', onsite:'Sur site', returning:'Retour', home:'Rentré', assigned:'Mission reçue'};
+const COLORS = {enroute:'var(--green)', onsite:'var(--cyan)', returning:'var(--blue)', home:'var(--gray)', assigned:'var(--amber)'};
+
+function render(){
+  $('#who').textContent = name || 'Runner';
+  if (document.activeElement !== $('#nameIn')) $('#nameIn').value = name;
+  $('#stLabel').textContent = LABELS[status] || status;
+  $('#dot').style.background = COLORS[status] || 'var(--gray)';
+  document.querySelectorAll('button.st[data-s]').forEach(b => b.classList.toggle('on', b.dataset.s === status));
+  $('#notifBtn').style.display = ('Notification' in window && Notification.permission !== 'granted') ? 'block' : 'none';
+}
+function onName(){ name = $('#nameIn').value.trim(); localStorage.setItem('runnerName', name); $('#who').textContent = name || 'Runner'; }
+function setStatus(s){ status = s; localStorage.setItem('runnerStatus', s); render(); sendReport(); }
+
+// ---- remontée d'état (téléphone -> cloud) ----
+async function sendReport(st){
+  if (disabled) return;
+  if (st) status = st;
+  lastPush = Date.now();
+  const body = { name, status, note: $('#note').value.trim(), assignmentId: curAssignId,
+                 lat, lng, accuracyM, updatedAt: {'.sv':'timestamp'} };
+  try{
+    const r = await fetch(`${DB}/runners/${id}/report.json`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    $('#net').textContent = r.ok ? 'en ligne ✓' : ('erreur ' + r.status);
+  }catch(e){ $('#net').textContent = 'hors ligne'; }
+}
+
+// ---- réception des missions (cloud -> téléphone) en temps réel ----
+function renderMission(a){
+  const box = $('#mission');
+  curAssign = (a && Array.isArray(a.stops) && a.stops.length) ? a : null;
+  $('#navBtn').style.display = curAssign ? 'block' : 'none';
+  if (!curAssign){ box.innerHTML = '<div class="mut">Aucune mission assignée.</div>'; return; }
+  const route = curAssign.stops.map((s,i) => `<span class="stop">${String.fromCharCode(65+i)}. ${esc(s)}</span>`)
+                              .join('<span class="arr">→</span>');
+  box.innerHTML = `<div class="mtitle">${esc(curAssign.title || 'Mission')}</div><div class="route">${route}</div>`
+                + (curAssign.note ? `<div class="mnote">${esc(curAssign.note)}</div>` : '');
+}
+function handleAssignment(a){
+  renderMission(a);
+  if (curAssign){
+    const key = curAssign.id || curAssign.stops.join('|');
+    if (key !== curAssignId){          // nouvelle mission
+      curAssignId = key;
+      notify('Nouvelle route assignée', (curAssign.title || 'Mission') + ' — ' + curAssign.stops.join(' → '));
+      sendReport('assigned');          // accusé de réception au dispatcher
+    }
+  } else { curAssignId = null; }
+}
+function listen(){
+  try{
+    const es = new EventSource(`${DB}/runners/${id}/assignment.json`);
+    es.addEventListener('put',   e => { const m = JSON.parse(e.data); if (m.path === '/') handleAssignment(m.data); else refreshAssign(); });
+    es.addEventListener('patch', () => refreshAssign());
+  }catch(e){ /* le poll de secours prend le relais */ }
+}
+async function refreshAssign(){ try{ const r = await fetch(`${DB}/runners/${id}/assignment.json`); handleAssignment(await r.json()); }catch(e){} }
+
+// ---- itinéraire GPS (ouvre l'app de navigation avec le trajet donné) ----
+function navigate(){
+  if (!curAssign || !curAssign.stops.length) return;
+  const s = curAssign.stops.map(encodeURIComponent);
+  let url = 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + s[s.length-1];
+  if (s.length >= 2){ url += '&origin=' + s[0]; const mid = s.slice(1, -1); if (mid.length) url += '&waypoints=' + mid.join('|'); }
+  window.open(url, '_blank');
+}
+
+// ---- messagerie (téléphone <-> dispatch) ----
+let msgs = {};
+function renderChat(){
+  const el = $('#chat'); if (!el) return;
+  const keys = Object.keys(msgs).sort((a,b) => (msgs[a].ts||0) - (msgs[b].ts||0));
+  el.innerHTML = keys.map(k => { const m = msgs[k]; const me = m.from === 'runner';
+    const t = m.ts ? new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="b ${me?'me':'them'}">${esc(m.text)}<span class="t">${me?'moi':esc(m.name||'dispatch')} · ${t}</span></div>`; }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+async function sendMsg(){
+  const inp = $('#msg'); const t = inp.value.trim(); if (!t) return; inp.value = '';
+  try{ await fetch(`${DB}/messages/${id}.json`, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({from:'runner', name, text:t, ts:{'.sv':'timestamp'}})}); }catch(e){}
+}
+async function refreshMsgs(){ try{ const r = await fetch(`${DB}/messages/${id}.json`); msgs = (await r.json()) || {}; renderChat(); }catch(e){} }
+function listenMsgs(){
+  try{
+    const es = new EventSource(`${DB}/messages/${id}.json`);
+    es.addEventListener('put', e => { const m = JSON.parse(e.data);
+      if (m.path === '/'){ msgs = m.data || {}; }
+      else { const k = m.path.replace(/^\//,''); if (m.data === null) delete msgs[k]; else msgs[k] = m.data; }
+      renderChat(); });
+    es.addEventListener('patch', () => refreshMsgs());
+  }catch(e){}
+}
+
+// ---- notifications locales ----
+async function enableNotif(){
+  try{ if ('Notification' in window){ const p = await Notification.requestPermission(); notifReady = (p === 'granted'); } }catch(e){}
+  try{ new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}   // débloque le son (geste utilisateur)
+  if (notifReady) subscribePush();
+  render();
+}
+// ---- Web Push : notifications même app fermée ----
+function urlB64ToUint8(b64){ const pad='='.repeat((4-b64.length%4)%4); const s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/'); const raw=atob(s); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
+async function subscribePush(){
+  try{
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
+    await fetch(`${DB}/runners/${id}/pushSub.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sub) });
+  }catch(e){}
+}
+function beep(){ try{ const a = new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(), g=a.createGain();
+  o.connect(g); g.connect(a.destination); o.frequency.value=880; g.gain.value=0.18; o.start(); o.stop(a.currentTime+0.3);}catch(e){} }
+async function notify(title, body){
+  if (navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
+  beep();
+  try{
+    if ('Notification' in window && Notification.permission === 'granted'){
+      const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+      if (reg && reg.showNotification) reg.showNotification(title, {body, tag:'assign', renotify:true});
+      else new Notification(title, {body});
+    }
+  }catch(e){}
+}
+
+// ---- GPS ----
+function startGps(){
+  if (!navigator.geolocation){ $('#gps').textContent = 'GPS non supporté par ce navigateur.'; return; }
+  if (watchId != null || disabled) return;
+  watchId = navigator.geolocation.watchPosition(p => {
+    lat = +p.coords.latitude.toFixed(6);
+    lng = +p.coords.longitude.toFixed(6);
+    accuracyM = Math.round(p.coords.accuracy);
+    $('#gps').textContent = `GPS : ${lat}, ${lng}  ±${accuracyM} m`;
+    if (Date.now() - lastPush > 12000 || dirty){ dirty = false; sendReport(); }
+  }, err => { $('#gps').textContent = 'GPS refusé / indispo : ' + err.message; },
+  { enableHighAccuracy:true, maximumAge:5000, timeout:20000 });
+}
+
+// ---- compte activé / désactivé (piloté par ProdForge) ----
+function setDisabled(on){
+  on = (on === true);
+  if (on === disabled) return;
+  disabled = on;
+  $('#locked').style.display = on ? 'flex' : 'none';
+  if (on){ if (watchId != null){ navigator.geolocation.clearWatch(watchId); watchId = null; } }
+  else { startGps(); sendReport(); }
+}
+function listenDisabled(){
+  try{ const es = new EventSource(`${DB}/runners/${id}/disabled.json`);
+    es.addEventListener('put', e => { const m = JSON.parse(e.data); if (m.path === '/') setDisabled(m.data === true); });
+  }catch(e){}
+}
+async function refreshDisabled(){ try{ const r = await fetch(`${DB}/runners/${id}/disabled.json`); setDisabled((await r.json()) === true); }catch(e){} }
+
+// ---- installation "en dur" (écran d'accueil) ----
+let deferredPrompt = null;
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (!isStandalone()) $('#installBtn').style.display = 'block'; });
+window.addEventListener('appinstalled', () => { $('#installBtn').style.display = 'none'; deferredPrompt = null; });
+async function doInstall(){ if (!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt = null; $('#installBtn').style.display = 'none'; }
+// iOS n'a pas de beforeinstallprompt → on montre l'astuce Partager → écran d'accueil
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandalone()) { const h = $('#iosHint'); if (h) h.style.display = 'block'; }
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+notifReady = ('Notification' in window && Notification.permission === 'granted');
+if (notifReady) subscribePush();
+$('#nameIn').value = name;
+$('#nameIn').addEventListener('input', onName);
+$('#nameIn').addEventListener('change', () => sendReport());   // remonte le prénom à ProdForge dès qu'on quitte le champ
+render(); startGps(); refreshDisabled(); sendReport(); listen(); refreshAssign(); listenMsgs(); refreshMsgs(); listenDisabled();
+setInterval(refreshAssign, 8000);                                    // filet de sécurité missions
+setInterval(refreshMsgs, 6000);                                      // filet de sécurité messagerie
+setInterval(refreshDisabled, 8000);                                  // filet de sécurité activation
+setInterval(() => { if (Date.now() - lastPush > 25000) sendReport(); }, 10000);  // battement de cœur
+</script>
+</body>
+</html>
