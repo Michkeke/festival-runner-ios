@@ -45,6 +45,12 @@
    border-radius:12px;padding:14px;font-size:16px}
  .pill{padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--mut);font-size:12px}
  .gps{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px;margin-top:10px}
+ textarea.fb{width:100%;background:#0b111a;border:1px solid var(--line);color:var(--fg);border-radius:12px;
+   padding:12px;font-size:15px;font-family:inherit;resize:vertical;min-height:46px;margin-bottom:8px}
+ .stars{font-size:30px;letter-spacing:6px;cursor:pointer;user-select:none;margin:2px 0 12px;color:var(--amber)}
+ .stars span{opacity:.3} .stars span.on{opacity:1}
+ #fbSend{width:100%;background:var(--green);color:#0b0f16;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
+ #fbmsg{font-size:13px;color:var(--mut);margin-top:8px;min-height:16px}
  #notifBtn,#installBtn{width:100%;background:#1b2536;border:1px solid var(--line);color:var(--fg);
    border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}
  #installBtn{background:#14324a;border-color:#2b4b66}
@@ -123,6 +129,16 @@
    </div>
  </div>
 
+ <div class="card" id="feedback">
+   <div style="font-weight:700;margin-bottom:8px">📝 Notes & retour</div>
+   <textarea id="pnote" class="fb" placeholder="Mes notes perso — privé, visible seulement par moi"></textarea>
+   <textarea id="anote" class="fb" placeholder="Message à l'administrateur (facultatif)"></textarea>
+   <div style="font-size:13px;color:var(--mut);margin-bottom:4px">Noter l'application :</div>
+   <div class="stars" id="stars"></div>
+   <button id="fbSend" onclick="sendFeedback()">Envoyer à l'administrateur</button>
+   <div id="fbmsg"></div>
+ </div>
+
  <footer>Garde l'app ouverte pendant tes trajets.<br>
    <a href="privacy.html" target="_blank" style="color:var(--mut)">Confidentialité (RGPD)</a> ·
    <a href="#" onclick="withdrawConsent();return false" style="color:var(--mut)">Arrêter le partage</a></footer>
@@ -132,6 +148,7 @@ const qs = new URLSearchParams(location.search);
 // Ces paramètres viennent du QR : ?db=<url-base>&id=<idRunner>&name=<nom>
 const DB = (qs.get('db') || 'https://caribana-runners-a7e4c-default-rtdb.europe-west1.firebasedatabase.app').replace(/\/+$/,'');
 const VAPID_PUBLIC = 'BA8Ou4-muhiK0TxlQ4WNHzgPzfomA6jxzzRd_OK7bhNonyHux6aQ4cOwGlmHusYro-aO5oNzxYy-1W6hi3bNTo4';
+const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 let id   = qs.get('id')   || localStorage.getItem('runnerId')   || '';
 let name = qs.get('name') || localStorage.getItem('runnerName') || '';
 if (qs.get('name')) localStorage.setItem('runnerName', name);
@@ -240,15 +257,33 @@ function listenMsgs(){
 
 // ---- notifications locales ----
 async function enableNotif(){
+  if (isNative){ await registerNativePush(); render(); return; }
   try{ if ('Notification' in window){ const p = await Notification.requestPermission(); notifReady = (p === 'granted'); } }catch(e){}
   try{ new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}   // débloque le son (geste utilisateur)
   if (notifReady) subscribePush();
   render();
 }
-// ---- Web Push : notifications même app fermée ----
+// ---- Push NATIF (iOS/Android via Capacitor APNs/FCM) ----
+async function registerNativePush(){
+  try{
+    const PN = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (!PN) return;
+    let perm = await PN.checkPermissions();
+    if (perm.receive !== 'granted') perm = await PN.requestPermissions();
+    if (perm.receive !== 'granted') return;
+    PN.addListener('registration', t => {           // token APNs -> cloud, lu par ProdForge
+      try{ fetch(`${DB}/runners/${id}/iosToken.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(t.value) }); }catch(e){}
+    });
+    PN.addListener('registrationError', () => {});
+    PN.addListener('pushNotificationReceived', () => { if (navigator.vibrate) navigator.vibrate([200,100,200]); });
+    await PN.register();
+  }catch(e){}
+}
+// ---- Web Push : notifications même app fermée (navigateur / PWA) ----
 function urlB64ToUint8(b64){ const pad='='.repeat((4-b64.length%4)%4); const s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/'); const raw=atob(s); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
 async function subscribePush(){
   try{
+    if (isNative) return;                            // en natif -> push APNs, pas Web Push
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
@@ -268,6 +303,22 @@ async function notify(title, body){
       else new Notification(title, {body});
     }
   }catch(e){}
+}
+
+// ---- notes perso (local) + retour à l'administrateur (cloud) ----
+let fbRating = 0;
+function renderStars(){ const el = $('#stars'); if (!el) return;
+  el.innerHTML = [1,2,3,4,5].map(n => `<span class="${n<=fbRating?'on':''}" onclick="setRating(${n})">★</span>`).join(''); }
+function setRating(n){ fbRating = (fbRating === n) ? 0 : n; renderStars(); }
+async function sendFeedback(){
+  const msg = $('#anote').value.trim();
+  if (!msg && !fbRating){ $('#fbmsg').textContent = 'Écris un message ou choisis une note.'; return; }
+  try{
+    await fetch(`${DB}/feedback.json`, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ app:'runner', user: name || id, userId: id,
+        rating: fbRating || null, message: msg || null, ts:{'.sv':'timestamp'} }) });
+    $('#fbmsg').textContent = 'Merci, envoyé ✓'; $('#anote').value = ''; fbRating = 0; renderStars();
+  }catch(e){ $('#fbmsg').textContent = "Échec de l'envoi."; }
 }
 
 // ---- GPS ----
@@ -321,12 +372,16 @@ function isStandalone(){ return window.matchMedia('(display-mode: standalone)').
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (!isStandalone()) $('#installBtn').style.display = 'block'; });
 window.addEventListener('appinstalled', () => { $('#installBtn').style.display = 'none'; deferredPrompt = null; });
 async function doInstall(){ if (!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt = null; $('#installBtn').style.display = 'none'; }
-// iOS n'a pas de beforeinstallprompt → on montre l'astuce Partager → écran d'accueil
-if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandalone()) { const h = $('#iosHint'); if (h) h.style.display = 'block'; }
+// iOS Safari (PWA web) : astuce Partager → écran d'accueil. Jamais dans l'app native.
+if (!isNative && /iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandalone()) { const h = $('#iosHint'); if (h) h.style.display = 'block'; }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 notifReady = ('Notification' in window && Notification.permission === 'granted');
 if (notifReady) subscribePush();
+if (isNative) registerNativePush();
+$('#pnote').value = localStorage.getItem('runnerPnote') || '';
+$('#pnote').addEventListener('input', () => localStorage.setItem('runnerPnote', $('#pnote').value));
+renderStars();
 $('#nameIn').value = name;
 $('#nameIn').addEventListener('input', onName);
 $('#nameIn').addEventListener('change', () => sendReport());   // remonte le prénom à ProdForge dès qu'on quitte le champ
