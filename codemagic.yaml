@@ -47,14 +47,14 @@ workflows:
           echo "=== DEBUG: profils App Store existants avant suppression ==="
           app-store-connect profiles list --type IOS_APP_STORE --json || echo "(list a echoue)"
           echo "=== FIN DEBUG ==="
-          for PID in $(app-store-connect profiles list --type IOS_APP_STORE --json 2>/dev/null | jq -r '(.data // .)[].id'); do
+          for PID in $(app-store-connect profiles list --type IOS_APP_STORE --json 2>/dev/null | jq -r '(if type=="object" then .data else . end)[].id'); do
             echo "Suppression du profil perime $PID"
             app-store-connect profiles delete "$PID" || true
           done
           # Purge des certificats de distribution : on en cree un neuf a chaque build
           # (cle privee fraiche), donc on revoque les anciens pour rester sous la limite Apple.
           for T in DISTRIBUTION IOS_DISTRIBUTION; do
-            for CID in $(app-store-connect certificates list --type $T --json 2>/dev/null | jq -r '(.data // .)[].id'); do
+            for CID in $(app-store-connect certificates list --type $T --json 2>/dev/null | jq -r '(if type=="object" then .data else . end)[].id'); do
               echo "Revocation du certificat $CID ($T)"
               app-store-connect certificates delete "$CID" || true
             done
