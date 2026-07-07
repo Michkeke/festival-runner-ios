@@ -44,6 +44,9 @@ workflows:
           # Push sur l'App ID) n'ont PAS la capability Push -> fetch-signing-files les
           # reutilise et la signature echoue. On les supprime pour qu'un profil NEUF
           # (incluant Push) soit regenere. Requiert Push active sur l'App ID ch.festival.runner.
+          echo "=== DEBUG: profils App Store existants avant suppression ==="
+          app-store-connect profiles list --type IOS_APP_STORE --json || echo "(list a echoue)"
+          echo "=== FIN DEBUG ==="
           for PID in $(app-store-connect profiles list --type IOS_APP_STORE --json 2>/dev/null | jq -r '(.data // .)[].id'); do
             echo "Suppression du profil perime $PID"
             app-store-connect profiles delete "$PID" || true
@@ -69,6 +72,18 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
+          echo "=== DEBUG: entitlements des profils recuperes ==="
+          for p in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
+            [ -e "$p" ] || { echo "(aucun profil telecharge)"; break; }
+            security cms -D -i "$p" > /tmp/pp.plist 2>/dev/null
+            NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/pp.plist 2>/dev/null)
+            if /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/pp.plist >/dev/null 2>&1; then
+              echo "  [$NAME] -> aps-environment PRESENT ✓"
+            else
+              echo "  [$NAME] -> PAS d'aps-environment ✗"
+            fi
+          done
+          echo "=== FIN DEBUG ==="
       - name: Build signed IPA
         script: |
           xcode-project build-ipa \
