@@ -23,6 +23,9 @@ workflows:
         script: |
           npx cap add ios || true
           npx cap sync ios
+          # AppDelegate avec le relais du token APNs (le template Capacitor ne l'a pas)
+          cp ios-overrides/AppDelegate.swift ios/App/App/AppDelegate.swift
+          echo "AppDelegate.swift remplace (relais push APNs)"
       - name: Info.plist + entitlements (localisation fond, push APNs, chiffrement)
         script: |
           PLIST="ios/App/App/Info.plist"
