@@ -23,6 +23,12 @@ workflows:
         script: |
           npx cap add ios || true
           npx cap sync ios
+      - name: Info.plist (localisation + conformite chiffrement)
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          plutil -replace NSLocationWhenInUseUsageDescription -string "Festival Runner utilise votre position pour la partager en temps reel avec votre responsable pendant vos missions." "$PLIST"
+          plutil -replace ITSAppUsesNonExemptEncryption -bool NO "$PLIST"
+          plutil -p "$PLIST" | grep -E "NSLocation|ITSApp" || true
       - name: Set build number
         script: |
           cd ios/App
