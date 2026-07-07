@@ -38,6 +38,16 @@ workflows:
         script: |
           cd ios/App
           agvtool new-version -all $(($BUILD_NUMBER + 1))
+      - name: Regenere le profil App Store (capability Push)
+        script: |
+          # Les profils App Store crees aux builds precedents (avant l'activation de
+          # Push sur l'App ID) n'ont PAS la capability Push -> fetch-signing-files les
+          # reutilise et la signature echoue. On les supprime pour qu'un profil NEUF
+          # (incluant Push) soit regenere. Requiert Push active sur l'App ID ch.festival.runner.
+          for PID in $(app-store-connect profiles list --type IOS_APP_STORE --json 2>/dev/null | jq -r '(.data // .)[].id'); do
+            echo "Suppression du profil perime $PID"
+            app-store-connect profiles delete "$PID" || true
+          done
       - name: Set up code signing
         script: |
           keychain initialize
