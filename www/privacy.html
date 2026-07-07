@@ -3,38 +3,61 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Confidentialité · Festival Runner</title>
+<title>Confidentialité (RGPD / nLPD) · Festival Runner</title>
 <style>
- body{font-family:system-ui,-apple-system,sans-serif;max-width:720px;margin:24px auto;padding:0 18px;line-height:1.6;color:#111}
+ body{font-family:system-ui,-apple-system,sans-serif;max-width:760px;margin:24px auto;padding:0 18px;line-height:1.6;color:#111}
  h1{font-size:22px} h2{font-size:17px;margin-top:26px} a{color:#0a58ca}
- .lang{color:#666;font-size:13px}
+ .meta{color:#666;font-size:13px} table{border-collapse:collapse;width:100%;margin:8px 0}
+ td,th{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top;font-size:14px}
+ code{background:#f2f2f2;padding:1px 4px;border-radius:4px}
 </style>
 </head>
 <body>
  <h1>Politique de confidentialité — Festival Runner</h1>
- <p class="lang">Dernière mise à jour : juillet 2026</p>
- <p>Festival Runner est une application <b>interne de coordination</b> destinée au personnel de production d'un festival (les « runners »/coursiers et le poste de dispatch). Elle n'est pas destinée au grand public.</p>
+ <p class="meta">Version 1.0 — juillet 2026. Conforme au RGPD (UE 2016/679) et à la loi suisse sur la protection des données (nLPD/revLPD).</p>
 
- <h2>Données traitées</h2>
+ <p><b>Festival Runner</b> est une application <b>interne de coordination</b> réservée au personnel de production d'un festival (« runners »/coursiers et poste de dispatch). Elle n'est pas destinée au grand public.</p>
+
+ <h2>1. Responsable du traitement</h2>
+ <p>Caribana Festival — Michel Duvivier, directeur technique.<br>
+    Contact / exercice des droits : <a href="mailto:michel.duvivier@caribana.ch">michel.duvivier@caribana.ch</a></p>
+
+ <h2>2. Données traitées, finalités et bases légales</h2>
+ <table>
+   <tr><th>Données</th><th>Finalité</th><th>Base légale</th></tr>
+   <tr><td>Prénom (saisi par l'utilisateur)</td><td>Identifier le runner auprès du dispatch</td><td>Exécution de la mission confiée (art. 6.1.b RGPD)</td></tr>
+   <tr><td>Position GPS (pendant l'utilisation de l'app)</td><td>Coordonner les trajets en temps réel</td><td>Intérêt légitime de l'organisateur à assurer la logistique et la sécurité de l'événement (art. 6.1.f), dans le cadre de la mission</td></tr>
+   <tr><td>Statut (en route, sur site, retour, rentré) et messages échangés avec le dispatch</td><td>Suivi des courses et communication opérationnelle</td><td>Exécution de la mission / intérêt légitime</td></tr>
+   <tr><td>Identifiant technique de notification (jeton push)</td><td>Envoyer les alertes de mission</td><td>Intérêt légitime</td></tr>
+ </table>
+ <p>Aucune donnée n'est utilisée à des fins publicitaires, de profilage ou de décision automatisée. Il n'y a pas de collecte de données sensibles.</p>
+
+ <h2>3. Caractère facultatif et contrôle</h2>
+ <p>Le partage de la position n'a lieu que <b>pendant que l'app est ouverte et pendant ton service</b>. Tu es informé et tu <b>consens</b> à ce partage au premier lancement, et tu peux <b>retirer ton consentement / arrêter le partage</b> à tout moment (bouton dans l'app), ce qui interrompt le suivi. Sans partage de position, l'app ne peut pas assurer la coordination des trajets.</p>
+
+ <h2>4. Destinataires et sous-traitants</h2>
+ <p>Les données sont accessibles au <b>poste de dispatch</b> de l'organisation. L'hébergement et la base de données temps réel sont fournis par <b>Google Firebase</b> (Google Ireland Ltd / Google LLC), agissant comme <b>sous-traitant</b> au sens de l'art. 28 RGPD, encadré par son Data Processing Addendum.</p>
+
+ <h2>5. Transferts hors UE / Suisse</h2>
+ <p>Google Firebase peut traiter des données sur des serveurs situés hors de l'UE/Suisse. Ces transferts sont encadrés par les <b>Clauses Contractuelles Types</b> de la Commission européenne et les garanties du DPA de Google.</p>
+
+ <h2>6. Durée de conservation</h2>
+ <p>Les données sont conservées <b>uniquement le temps de l'événement</b> et supprimées à sa clôture, ou immédiatement lorsque l'organisation <b>supprime le compte</b> du runner (ce qui efface aussi position, statut et historique de messages). Le jeton de notification est supprimé avec le compte.</p>
+
+ <h2>7. Sécurité</h2>
+ <p>L'accès aux données est restreint au dispatch. Les échanges se font en HTTPS. Les comptes peuvent être désactivés à distance, ce qui coupe immédiatement le suivi.</p>
+
+ <h2>8. Tes droits</h2>
+ <p>Conformément au RGPD et à la nLPD, tu disposes des droits d'<b>accès</b>, de <b>rectification</b>, d'<b>effacement</b>, de <b>limitation</b>, d'<b>opposition</b>, de <b>portabilité</b> et de <b>retrait du consentement</b>. Pour les exercer : <a href="mailto:michel.duvivier@caribana.ch">michel.duvivier@caribana.ch</a>. Réponse sous 30 jours.</p>
+
+ <h2>9. Réclamation auprès d'une autorité</h2>
+ <p>Tu peux introduire une réclamation auprès de l'autorité compétente :</p>
  <ul>
-   <li><b>Position GPS</b> : partagée en temps réel avec le poste de dispatch <b>pendant l'utilisation</b> de l'app, pour coordonner les trajets.</li>
-   <li><b>Prénom</b> saisi par l'utilisateur, pour l'identifier auprès du dispatch.</li>
-   <li><b>Statut</b> (en route, sur site, retour, rentré) et <b>messages</b> échangés avec le dispatch.</li>
+   <li><b>Suisse</b> : Préposé fédéral à la protection des données et à la transparence (PFPDT) — <a href="https://www.edoeb.admin.ch">www.edoeb.admin.ch</a></li>
+   <li><b>France / UE</b> : CNIL — <a href="https://www.cnil.fr">www.cnil.fr</a> (ou l'autorité de ton pays de résidence)</li>
  </ul>
 
- <h2>Finalité</h2>
- <p>Ces données servent <b>uniquement</b> à coordonner les courses pendant l'événement. Elles ne sont ni vendues, ni louées, ni utilisées à des fins publicitaires ou de profilage.</p>
-
- <h2>Stockage et conservation</h2>
- <p>Les données transitent et sont stockées via <b>Google Firebase</b> (base de données temps réel). Elles sont effacées à la fin de l'événement ou lorsque l'organisation supprime le compte du runner.</p>
-
- <h2>Notifications</h2>
- <p>L'app envoie des notifications (nouvelle mission, message) via le service de notifications de l'appareil. Tu peux les désactiver dans les réglages du téléphone.</p>
-
- <h2>Tes droits</h2>
- <p>Tu peux demander l'accès, la correction ou la suppression de tes données en contactant l'organisation, qui peut supprimer ton compte à tout moment.</p>
-
- <h2>Contact</h2>
- <p>Responsable du traitement : <a href="mailto:michel.duvivier@caribana.ch">michel.duvivier@caribana.ch</a></p>
+ <h2>10. Modifications</h2>
+ <p>Cette politique peut évoluer ; la version et la date en haut de page font foi.</p>
 </body>
 </html>

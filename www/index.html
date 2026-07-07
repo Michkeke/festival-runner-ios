@@ -55,6 +55,11 @@
  .b .t{display:block;font-size:11px;opacity:.6;margin-top:3px}
  #locked{display:none;position:fixed;inset:0;z-index:99;background:#0b0f16;
    flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+ #consent{display:none;position:fixed;inset:0;z-index:100;background:#0b0f16;overflow:auto;padding:20px;
+   align-items:center;justify-content:center}
+ #consent .cbox{max-width:460px;margin:auto;background:var(--card);border:1px solid var(--line);
+   border-radius:16px;padding:18px;font-size:14px;line-height:1.5}
+ #consent a{color:var(--cyan)}
  footer{margin-top:auto;color:var(--mut);font-size:12px;text-align:center;line-height:1.5}
 </style>
 </head>
@@ -71,6 +76,16 @@
    <div style="font-size:46px">🔒</div>
    <div style="font-size:22px;font-weight:800">Compte désactivé</div>
    <div style="color:var(--mut);max-width:320px">Ton accès runner a été désactivé par l'organisation.<br>Contacte le dispatch si besoin.</div>
+ </div>
+
+ <div id="consent">
+   <div class="cbox">
+     <div style="font-size:20px;font-weight:800;margin-bottom:10px">Confidentialité</div>
+     <p>Pendant ton service, cette app partage ta <b>position GPS</b>, ton <b>statut</b> et tes <b>messages</b> avec le poste de dispatch, <b>uniquement</b> pour coordonner les trajets.</p>
+     <p>Données hébergées sur Google Firebase, <b>effacées à la fin de l'événement</b>. Tu peux <b>arrêter le partage à tout moment</b>. Bases légales : exécution de ta mission et intérêt légitime de l'organisateur.</p>
+     <p><a href="privacy.html" target="_blank">Lire la politique de confidentialité complète (RGPD / nLPD)</a></p>
+     <button class="st" style="width:100%;background:var(--green);color:#0b0f16;margin-top:6px" onclick="acceptConsent()">J'ai lu et j'accepte</button>
+   </div>
  </div>
 
  <div id="setup" class="card">
@@ -108,7 +123,9 @@
    </div>
  </div>
 
- <footer>Garde l'app ouverte pendant tes trajets.<br>« Partager » → « Sur l'écran d'accueil » pour le plein écran + les notifications.</footer>
+ <footer>Garde l'app ouverte pendant tes trajets.<br>
+   <a href="privacy.html" target="_blank" style="color:var(--mut)">Confidentialité (RGPD)</a> ·
+   <a href="#" onclick="withdrawConsent();return false" style="color:var(--mut)">Arrêter le partage</a></footer>
 
 <script>
 const qs = new URLSearchParams(location.search);
@@ -123,7 +140,7 @@ if (!id) { id = 'r' + Math.random().toString(36).slice(2,8); localStorage.setIte
 
 let status = localStorage.getItem('runnerStatus') || 'home';
 let lat=null, lng=null, accuracyM=null, dirty=false, lastPush=0, curAssignId=null, curAssign=null, notifReady=false;
-let disabled=false, watchId=null;
+let disabled=false, watchId=null, consented=(localStorage.getItem('runnerConsent')==='1');
 const $ = s => document.querySelector(s);
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LABELS = {enroute:'En route', onsite:'Sur site', returning:'Retour', home:'Rentré', assigned:'Mission reçue'};
@@ -142,7 +159,7 @@ function setStatus(s){ status = s; localStorage.setItem('runnerStatus', s); rend
 
 // ---- remontée d'état (téléphone -> cloud) ----
 async function sendReport(st){
-  if (disabled) return;
+  if (disabled || !consented) return;
   if (st) status = st;
   lastPush = Date.now();
   const body = { name, status, note: $('#note').value.trim(), assignmentId: curAssignId,
@@ -256,7 +273,7 @@ async function notify(title, body){
 // ---- GPS ----
 function startGps(){
   if (!navigator.geolocation){ $('#gps').textContent = 'GPS non supporté par ce navigateur.'; return; }
-  if (watchId != null || disabled) return;
+  if (watchId != null || disabled || !consented) return;
   watchId = navigator.geolocation.watchPosition(p => {
     lat = +p.coords.latitude.toFixed(6);
     lng = +p.coords.longitude.toFixed(6);
@@ -283,6 +300,21 @@ function listenDisabled(){
 }
 async function refreshDisabled(){ try{ const r = await fetch(`${DB}/runners/${id}/disabled.json`); setDisabled((await r.json()) === true); }catch(e){} }
 
+// ---- consentement RGPD (avant tout suivi GPS) ----
+function acceptConsent(){
+  consented = true; localStorage.setItem('runnerConsent', '1');
+  const c = $('#consent'); if (c) c.style.display = 'none';
+  try{ fetch(`${DB}/runners/${id}/consent.json`, { method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ accepted:true, version:'1.0', ts:{'.sv':'timestamp'} }) }); }catch(e){}
+  startGps(); sendReport();
+}
+function withdrawConsent(){
+  consented = false; localStorage.removeItem('runnerConsent');
+  if (watchId != null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
+  try{ fetch(`${DB}/runners/${id}/consent.json`, { method:'DELETE' }); }catch(e){}
+  const c = $('#consent'); if (c) c.style.display = 'flex';
+}
+
 // ---- installation "en dur" (écran d'accueil) ----
 let deferredPrompt = null;
 function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
@@ -298,6 +330,7 @@ if (notifReady) subscribePush();
 $('#nameIn').value = name;
 $('#nameIn').addEventListener('input', onName);
 $('#nameIn').addEventListener('change', () => sendReport());   // remonte le prénom à ProdForge dès qu'on quitte le champ
+if (!consented) $('#consent').style.display = 'flex';          // pas de suivi GPS tant que le consentement n'est pas donné
 render(); startGps(); refreshDisabled(); sendReport(); listen(); refreshAssign(); listenMsgs(); refreshMsgs(); listenDisabled();
 setInterval(refreshAssign, 8000);                                    // filet de sécurité missions
 setInterval(refreshMsgs, 6000);                                      // filet de sécurité messagerie
