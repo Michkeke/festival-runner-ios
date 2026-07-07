@@ -157,7 +157,7 @@ if (!id) { id = 'r' + Math.random().toString(36).slice(2,8); localStorage.setIte
 
 let status = localStorage.getItem('runnerStatus') || 'home';
 let lat=null, lng=null, accuracyM=null, dirty=false, lastPush=0, curAssignId=null, curAssign=null, notifReady=false;
-let disabled=false, watchId=null, consented=(localStorage.getItem('runnerConsent')==='1');
+let disabled=false, watchId=null, bgWatcherId=null, consented=(localStorage.getItem('runnerConsent')==='1');
 const $ = s => document.querySelector(s);
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LABELS = {enroute:'En route', onsite:'Sur site', returning:'Retour', home:'Rentré', assigned:'Mission reçue'};
@@ -323,6 +323,7 @@ async function sendFeedback(){
 
 // ---- GPS ----
 function startGps(){
+  if (isNative){ startBgGeo(); return; }              // app native → géoloc en arrière-plan (écran verrouillé)
   if (!navigator.geolocation){ $('#gps').textContent = 'GPS non supporté par ce navigateur.'; return; }
   if (watchId != null || disabled || !consented) return;
   watchId = navigator.geolocation.watchPosition(p => {
@@ -335,13 +336,42 @@ function startGps(){
   { enableHighAccuracy:true, maximumAge:5000, timeout:20000 });
 }
 
+// ---- géoloc NATIVE en arrière-plan (continue écran verrouillé / app en fond) ----
+async function startBgGeo(){
+  const BG = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+  if (!BG){ $('#gps').textContent = 'Géoloc native indisponible.'; return; }
+  if (bgWatcherId || disabled || !consented) return;
+  try{
+    bgWatcherId = await BG.addWatcher({
+      backgroundMessage: "Partage de position actif pendant ton service.",
+      backgroundTitle: "Festival Runner — suivi actif",
+      requestPermissions: true,
+      stale: false,
+      distanceFilter: 8            // mètres entre deux points
+    }, (location, error) => {
+      if (error){ $('#gps').textContent = 'GPS : ' + (error.code || error.message || 'erreur'); return; }
+      if (!location) return;
+      lat = +location.latitude.toFixed(6);
+      lng = +location.longitude.toFixed(6);
+      accuracyM = Math.round(location.accuracy || 0);
+      $('#gps').textContent = `GPS : ${lat}, ${lng}  ±${accuracyM} m`;
+      if (Date.now() - lastPush > 10000 || dirty){ dirty = false; sendReport(); } else sendReport();
+    });
+  }catch(e){ bgWatcherId = null; $('#gps').textContent = 'GPS natif refusé.'; }
+}
+async function stopBgGeo(){
+  const BG = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+  if (BG && bgWatcherId){ try{ await BG.removeWatcher({ id: bgWatcherId }); }catch(e){} }
+  bgWatcherId = null;
+}
+
 // ---- compte activé / désactivé (piloté par ProdForge) ----
 function setDisabled(on){
   on = (on === true);
   if (on === disabled) return;
   disabled = on;
   $('#locked').style.display = on ? 'flex' : 'none';
-  if (on){ if (watchId != null){ navigator.geolocation.clearWatch(watchId); watchId = null; } }
+  if (on){ if (watchId != null){ navigator.geolocation.clearWatch(watchId); watchId = null; } stopBgGeo(); }
   else { startGps(); sendReport(); }
 }
 function listenDisabled(){
@@ -362,6 +392,7 @@ function acceptConsent(){
 function withdrawConsent(){
   consented = false; localStorage.removeItem('runnerConsent');
   if (watchId != null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
+  stopBgGeo();
   try{ fetch(`${DB}/runners/${id}/consent.json`, { method:'DELETE' }); }catch(e){}
   const c = $('#consent'); if (c) c.style.display = 'flex';
 }
