@@ -66,6 +66,8 @@
  #consent .cbox{max-width:460px;margin:auto;background:var(--card);border:1px solid var(--line);
    border-radius:16px;padding:18px;font-size:14px;line-height:1.5}
  #consent a{color:var(--cyan)}
+ #fbpanel{display:none;position:fixed;inset:0;z-index:100;background:#0b0f16;overflow:auto;padding:20px}
+ #fbpanel .cbox{max-width:460px;margin:18px auto}
  footer{margin-top:auto;color:var(--mut);font-size:12px;text-align:center;line-height:1.5}
 </style>
 </head>
@@ -94,6 +96,23 @@
    </div>
  </div>
 
+ <div id="fbpanel">
+   <div class="cbox">
+     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+       <div style="font-size:20px;font-weight:800">📝 Notes &amp; retour</div>
+       <button class="pill" style="cursor:pointer;font-size:14px" onclick="closeFb()">Fermer ✕</button>
+     </div>
+     <div style="font-size:13px;color:var(--mut);margin-bottom:6px">Tes notes perso (privé, visible seulement par toi) :</div>
+     <textarea id="pnote" class="fb" placeholder="Mes notes…"></textarea>
+     <div style="font-size:13px;color:var(--mut);margin:10px 0 6px">Message à l'administrateur (facultatif) :</div>
+     <textarea id="anote" class="fb" placeholder="Écrire à l'administrateur…"></textarea>
+     <div style="font-size:13px;color:var(--mut);margin-bottom:4px">Noter l'application :</div>
+     <div class="stars" id="stars"></div>
+     <button id="fbSend" onclick="sendFeedback()">Envoyer à l'administrateur</button>
+     <div id="fbmsg"></div>
+   </div>
+ </div>
+
  <div id="setup" class="card">
    <div style="margin-bottom:8px;font-size:15px">Ton prénom (tu peux le modifier) :</div>
    <div class="row">
@@ -115,10 +134,7 @@
    <button class="st" data-s="home"       onclick="setStatus('home')">Rentré</button>
  </div>
 
- <div class="card">
-   <div class="row"><input id="note" placeholder="Note d'état (optionnel)" oninput="dirty=true"></div>
-   <div class="gps" id="gps">GPS : en attente d'autorisation…</div>
- </div>
+ <span id="gps" style="display:none"></span>
 
  <div class="card">
    <div style="font-weight:700;margin-bottom:8px">💬 Messagerie · dispatch</div>
@@ -129,17 +145,8 @@
    </div>
  </div>
 
- <div class="card" id="feedback">
-   <div style="font-weight:700;margin-bottom:8px">📝 Notes & retour</div>
-   <textarea id="pnote" class="fb" placeholder="Mes notes perso — privé, visible seulement par moi"></textarea>
-   <textarea id="anote" class="fb" placeholder="Message à l'administrateur (facultatif)"></textarea>
-   <div style="font-size:13px;color:var(--mut);margin-bottom:4px">Noter l'application :</div>
-   <div class="stars" id="stars"></div>
-   <button id="fbSend" onclick="sendFeedback()">Envoyer à l'administrateur</button>
-   <div id="fbmsg"></div>
- </div>
-
  <footer>Garde l'app ouverte pendant tes trajets.<br>
+   <a href="#" onclick="openFb();return false" style="color:var(--mut)">📝 Notes &amp; retour</a> ·
    <a href="privacy.html" target="_blank" style="color:var(--mut)">Confidentialité (RGPD)</a> ·
    <a href="#" onclick="withdrawConsent();return false" style="color:var(--mut)">Arrêter le partage</a></footer>
 
@@ -179,7 +186,7 @@ async function sendReport(st){
   if (disabled || !consented) return;
   if (st) status = st;
   lastPush = Date.now();
-  const body = { name, status, note: $('#note').value.trim(), assignmentId: curAssignId,
+  const body = { name, status, note: '', assignmentId: curAssignId,
                  lat, lng, accuracyM, updatedAt: {'.sv':'timestamp'} };
   try{
     const r = await fetch(`${DB}/runners/${id}/report.json`, {
@@ -306,6 +313,8 @@ async function notify(title, body){
 }
 
 // ---- notes perso (local) + retour à l'administrateur (cloud) ----
+function openFb(){ const p = $('#fbpanel'); if (p) p.style.display = 'block'; $('#fbmsg').textContent = ''; }
+function closeFb(){ const p = $('#fbpanel'); if (p) p.style.display = 'none'; }
 let fbRating = 0;
 function renderStars(){ const el = $('#stars'); if (!el) return;
   el.innerHTML = [1,2,3,4,5].map(n => `<span class="${n<=fbRating?'on':''}" onclick="setRating(${n})">★</span>`).join(''); }

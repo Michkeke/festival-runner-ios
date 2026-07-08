@@ -17,12 +17,12 @@ workflows:
     scripts:
       - name: Install JS deps
         script: npm ci || npm install
-      - name: Generate app icons / splash
-        script: npx @capacitor/assets generate --ios || true
       - name: Add + sync iOS platform
         script: |
           npx cap add ios || true
           npx cap sync ios
+          # Icones : generees APRES cap add (le projet iOS doit exister, sinon rien n'est applique)
+          npx @capacitor/assets generate --ios || true
           # AppDelegate avec le relais du token APNs (le template Capacitor ne l'a pas)
           cp ios-overrides/AppDelegate.swift ios/App/App/AppDelegate.swift
           echo "AppDelegate.swift remplace (relais push APNs)"
