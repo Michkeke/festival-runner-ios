@@ -68,17 +68,44 @@
  #consent a{color:var(--cyan)}
  #fbpanel{display:none;position:fixed;inset:0;z-index:100;background:#0b0f16;overflow:auto;padding:20px}
  #fbpanel .cbox{max-width:460px;margin:18px auto}
+ #menuBtn{background:#1b2536;border:1px solid var(--line);color:var(--fg);border-radius:10px;width:46px;height:42px;
+   font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto}
+ #menuBtn:active{background:#243247}
+ #drawerBg{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .28s ease}
+ #drawerBg.open{opacity:1;pointer-events:auto}
+ #drawer{position:fixed;top:0;left:0;bottom:0;width:min(82vw,300px);z-index:101;background:#131a24;border-right:1px solid var(--line);
+   padding:18px 14px;display:flex;flex-direction:column;gap:9px;transform:translateX(-100%);transition:transform .28s ease;
+   box-shadow:6px 0 24px rgba(0,0,0,.4)}
+ #drawer.open{transform:translateX(0)}
+ .mitem{display:flex;align-items:center;gap:13px;padding:15px 13px;border-radius:12px;background:#0b111a;border:1px solid var(--line);
+   font-size:16px;font-weight:700;color:var(--fg);cursor:pointer;text-decoration:none}
+ .mitem:active{background:#16202e}
+ .mitem .ico{font-size:20px;width:24px;text-align:center}
  footer{margin-top:auto;color:var(--mut);font-size:12px;text-align:center;line-height:1.5}
 </style>
 </head>
 <body>
  <header>
-   <div>
-     <div class="who" id="who">Runner</div>
-     <div class="sub"><span class="dot" id="dot"></span><span id="stLabel">en attente</span></div>
+   <div style="display:flex;align-items:center;gap:12px">
+     <button id="menuBtn" aria-label="Menu" onclick="openMenu()">☰</button>
+     <div>
+       <div class="who" id="who">Runner</div>
+       <div class="sub"><span class="dot" id="dot"></span><span id="stLabel">en attente</span></div>
+     </div>
    </div>
    <span class="pill" id="net">…</span>
  </header>
+
+ <div id="drawerBg" onclick="closeMenu()"></div>
+ <div id="drawer">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+     <div style="font-size:19px;font-weight:800">Menu</div>
+     <button class="pill" style="cursor:pointer;font-size:15px" onclick="closeMenu()">✕</button>
+   </div>
+   <div class="mitem" onclick="closeMenu();openFb()"><span class="ico">📝</span> Notes &amp; retour</div>
+   <a class="mitem" href="privacy.html" target="_blank" onclick="closeMenu()"><span class="ico">🔒</span> Confidentialité (RGPD)</a>
+   <div class="mitem" onclick="closeMenu();withdrawConsent()"><span class="ico">⏹</span> Arrêter le partage</div>
+ </div>
 
  <div id="locked">
    <div style="font-size:46px">🔒</div>
@@ -146,9 +173,7 @@
  </div>
 
  <footer>Garde l'app ouverte pendant tes trajets.<br>
-   <a href="#" onclick="openFb();return false" style="color:var(--mut)">📝 Notes &amp; retour</a> ·
-   <a href="privacy.html" target="_blank" style="color:var(--mut)">Confidentialité (RGPD)</a> ·
-   <a href="#" onclick="withdrawConsent();return false" style="color:var(--mut)">Arrêter le partage</a></footer>
+   <span class="mut">Menu ☰ en haut à gauche</span></footer>
 
 <script>
 const qs = new URLSearchParams(location.search);
@@ -313,6 +338,8 @@ async function notify(title, body){
 }
 
 // ---- notes perso (local) + retour à l'administrateur (cloud) ----
+function openMenu(){ $('#drawer').classList.add('open'); $('#drawerBg').classList.add('open'); }
+function closeMenu(){ $('#drawer').classList.remove('open'); $('#drawerBg').classList.remove('open'); }
 function openFb(){ const p = $('#fbpanel'); if (p) p.style.display = 'block'; $('#fbmsg').textContent = ''; }
 function closeFb(){ const p = $('#fbpanel'); if (p) p.style.display = 'none'; }
 let fbRating = 0;
