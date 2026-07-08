@@ -390,6 +390,20 @@ function listenDisabled(){
 }
 async function refreshDisabled(){ try{ const r = await fetch(`${DB}/runners/${id}/disabled.json`); setDisabled((await r.json()) === true); }catch(e){} }
 
+// ---- nom imposé par le dispatch (ProdForge) : le téléphone l'adopte ----
+function adoptDispatchName(n){
+  if (typeof n !== 'string') return; n = n.trim();
+  if (!n || n === name) return;
+  name = n; localStorage.setItem('runnerName', name);
+  render(); sendReport();
+}
+function listenName(){
+  try{ const es = new EventSource(`${DB}/runners/${id}/dispatchName.json`);
+    es.addEventListener('put', e => { const m = JSON.parse(e.data); if (m.path === '/') adoptDispatchName(m.data); });
+  }catch(e){}
+}
+async function refreshName(){ try{ const r = await fetch(`${DB}/runners/${id}/dispatchName.json`); adoptDispatchName(await r.json()); }catch(e){} }
+
 // ---- consentement RGPD (avant tout suivi GPS) ----
 function acceptConsent(){
   consented = true; localStorage.setItem('runnerConsent', '1');
@@ -426,7 +440,8 @@ $('#nameIn').value = name;
 $('#nameIn').addEventListener('input', onName);
 $('#nameIn').addEventListener('change', () => sendReport());   // remonte le prénom à ProdForge dès qu'on quitte le champ
 if (!consented) $('#consent').style.display = 'flex';          // pas de suivi GPS tant que le consentement n'est pas donné
-render(); startGps(); refreshDisabled(); sendReport(); listen(); refreshAssign(); listenMsgs(); refreshMsgs(); listenDisabled();
+render(); startGps(); refreshDisabled(); sendReport(); listen(); refreshAssign(); listenMsgs(); refreshMsgs(); listenDisabled(); refreshName(); listenName();
+setInterval(refreshName, 8000);                                     // filet de sécurité : nom imposé par le dispatch
 setInterval(refreshAssign, 8000);                                    // filet de sécurité missions
 setInterval(refreshMsgs, 6000);                                      // filet de sécurité messagerie
 setInterval(refreshDisabled, 8000);                                  // filet de sécurité activation
