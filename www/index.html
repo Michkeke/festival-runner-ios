@@ -498,11 +498,16 @@ $('#nameIn').addEventListener('input', onName);
 $('#nameIn').addEventListener('change', () => { sendReport(); render(); });   // remonte le prénom + masque l'encart une fois saisi
 if (!consented) $('#consent').style.display = 'flex';          // pas de suivi GPS tant que le consentement n'est pas donné
 render(); startGps(); refreshDisabled(); sendReport(); listen(); refreshAssign(); listenMsgs(); refreshMsgs(); listenDisabled(); refreshName(); listenName(); refreshTheme(); listenTheme();
-setInterval(refreshTheme, 10000);                                   // direction artistique en temps réel
-setInterval(refreshName, 8000);                                     // filet de sécurité : nom imposé par le dispatch
-setInterval(refreshAssign, 8000);                                    // filet de sécurité missions
-setInterval(refreshMsgs, 6000);                                      // filet de sécurité messagerie
-setInterval(refreshDisabled, 8000);                                  // filet de sécurité activation
+function refreshAll(){ refreshAssign(); refreshMsgs(); refreshDisabled(); refreshName(); refreshTheme(); }
+// iOS gèle les timers/EventSource en arrière-plan → au retour au 1er plan, on resynchronise tout de suite
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAll(); });
+window.addEventListener('focus', refreshAll);
+window.addEventListener('online', refreshAll);
+setInterval(refreshTheme, 6000);                                    // direction artistique en temps réel
+setInterval(refreshName, 5000);                                     // filet de sécurité : nom imposé par le dispatch
+setInterval(refreshAssign, 4000);                                    // filet de sécurité missions
+setInterval(refreshMsgs, 4000);                                      // filet de sécurité messagerie
+setInterval(refreshDisabled, 5000);                                  // filet de sécurité activation
 setInterval(() => { if (Date.now() - lastPush > 25000) sendReport(); }, 10000);  // battement de cœur
 </script>
 </body>
