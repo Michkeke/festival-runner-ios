@@ -2,6 +2,10 @@
   "appId": "ch.festival.runner",
   "appName": "Festival Runner",
   "webDir": "www",
+  "server": {
+    "url": "https://caribana-runners-a7e4c.web.app",
+    "cleartext": false
+  },
   "ios": {
     "contentInset": "always"
   },
